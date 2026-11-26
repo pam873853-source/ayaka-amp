@@ -3,14 +3,14 @@ import { neonDb } from './neon-client.js';
 
 export let historyLogs = [];
 export let reportsLogs = [];
-export let totalVisitors = 0; // Mulai dari 0, bukan 1
+export let totalVisitors = 0;
 let realTimeChart = null;
 
 export function setHistoryLogs(logs) {
     historyLogs = logs;
     historyLogs.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
     updateCounts();
-    if (document.getElementById('view-riwayat')?.classList.contains('hidden') === false) renderHistory();
+    if (!document.getElementById('view-riwayat')?.classList.contains('hidden')) renderHistory();
 }
 
 export function setReportsLogs(logs) {
@@ -19,9 +19,9 @@ export function setReportsLogs(logs) {
 }
 
 export function setTotalVisitors(n) {
-    // Pastikan tidak pernah minus
-    totalVisitors = Math.max(0, n);
-    updateCounts();
+    totalVisitors = Math.max(0, Number(n) || 0);
+    const el = document.getElementById('visitors-count');
+    if (el) el.textContent = totalVisitors;
 }
 
 export function renderHistory() {
@@ -65,32 +65,27 @@ export function renderReports() {
 }
 
 export function updateCounts() {
-    // --- Hitung Aktivasi ---
     const countActivations = historyLogs.length;
     const actEl = document.getElementById('activations-count');
     const actTotalEl = document.getElementById('act-total-count');
     const actTodayEl = document.getElementById('act-today-count');
-    
+
     if (actEl) actEl.textContent = countActivations;
     if (actTotalEl) actTotalEl.textContent = countActivations;
-    
+
     const todayStr = new Date().toDateString();
     const todayCount = historyLogs.filter(h => h.dateString === todayStr || h.date_string?.includes(todayStr)).length;
     if (actTodayEl) actTodayEl.textContent = todayCount;
 
-    // --- Hitung Pengunjung Online (Akurat) ---
     const visitorsEl = document.getElementById('visitors-count');
-    if (visitorsEl) {
-        // Tampilkan angka dari DB, bukan angka random
-        visitorsEl.textContent = totalVisitors;
-    }
-    
+    if (visitorsEl) visitorsEl.textContent = totalVisitors;
+
     updateChartData();
 }
 
 export function initActivationChart() {
     const canvas = document.getElementById('activation-chart');
-    if (!canvas) return;
+    if (!canvas || typeof Chart === 'undefined') return;
     if (realTimeChart) { realTimeChart.destroy(); realTimeChart = null; }
     const ctx = canvas.getContext('2d');
     const hoursLabels = [];
@@ -177,10 +172,7 @@ window.submitBugReport = async function() {
     const description = document.getElementById('report-description').value.trim();
     if (!description) { showToast("Mohon isi deskripsi kendala/saran terlebih dahulu!"); return; }
     const btn = document.getElementById('btn-submit-report');
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Menyimpan...`;
-    }
+    if (btn) { btn.disabled = true; btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Menyimpan...`; }
     const reportData = {
         category: category,
         description: description,
@@ -196,10 +188,7 @@ window.submitBugReport = async function() {
     } catch (e) {
         showToast("Gagal menyimpan laporan: " + e.message);
     } finally {
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = `<i class="fa-solid fa-database"></i> Kirim & Simpan Laporan ke Neon DB`;
-        }
+        if (btn) { btn.disabled = false; btn.innerHTML = `<i class="fa-solid fa-database"></i> Kirim & Simpan Laporan ke Neon DB`; }
     }
 };
 
