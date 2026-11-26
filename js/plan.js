@@ -1,17 +1,21 @@
 import { showToast, appendTerminalLog } from './utils.js';
-import { userAccountState, saveUserState } from './user-session.js';
+import { userAccountState, saveUserState, syncUserToDB } from './user-session.js';
 import { neonDb } from './neon-client.js';
 
 let targetUpgradePlan = 'pro';
-let pendingPaymentPlan = { key: 'pro', label: 'Plan Pro', price: 'Rp 15.000', limit: 500 };
+let pendingPaymentPlan = { key: 'pro', label: 'Plan Pro', price: 'Rp 35.000', limit: 500 };
 let paymentProofDataUrl = '';
 
+// =======================================================
+// MODAL PEMBAYARAN QR
+// =======================================================
 window.openPlanPaymentModal = function(planKey, label, price, limitVal) {
     if (!userAccountState.isLoggedIn) {
         showToast("Silakan login akun terlebih dahulu sebelum melakukan pembayaran Plan!");
         window.setActiveTab('profil');
         return;
     }
+
     pendingPaymentPlan = { key: planKey, label, price, limit: limitVal };
     paymentProofDataUrl = '';
 
@@ -26,6 +30,7 @@ window.openPlanPaymentModal = function(planKey, label, price, limitVal) {
     if (previewWrap) previewWrap.classList.add('hidden');
     if (titleEl) titleEl.textContent = `Pembayaran ${label}`;
     if (priceEl) priceEl.textContent = price;
+
     setGreenSubmitButtonState(false);
 
     const modal = document.getElementById('plan-qr-modal');
@@ -60,6 +65,9 @@ function setGreenSubmitButtonState(enabled) {
     }
 }
 
+// =======================================================
+// HANDLE UPLOAD BUKTI PEMBAYARAN
+// =======================================================
 window.handlePaymentProofChange = function(event) {
     const file = event?.target?.files?.[0];
     const fileNameEl = document.getElementById('payment-proof-filename');
@@ -73,12 +81,14 @@ window.handlePaymentProofChange = function(event) {
         setGreenSubmitButtonState(false);
         return;
     }
+
     if (file.size > 5 * 1024 * 1024) {
         showToast("Ukuran gambar maksimal 5 MB!");
         event.target.value = '';
         setGreenSubmitButtonState(false);
         return;
     }
+
     if (fileNameEl) fileNameEl.textContent = file.name;
 
     const reader = new FileReader();
@@ -93,49 +103,89 @@ window.handlePaymentProofChange = function(event) {
     reader.readAsDataURL(file);
 };
 
+// =======================================================
+// SUBMIT BUKTI TRANSFER → Simpan ke tabel `payments`
+// =======================================================
 window.handleSubmitPaymentProof = async function() {
     if (!paymentProofDataUrl) {
         showToast("Kirim/pilih bukti pembayaran QR terlebih dahulu!");
         setGreenSubmitButtonState(false);
         return;
     }
-    userAccountState.plan = pendingPaymentPlan.key;
-    userAccountState.maxLimit = pendingPaymentPlan.limit;
-    userAccountState.remainingLimit = pendingPaymentPlan.limit;
-    saveUserState();
 
-    appendTerminalLog(`Bukti transfer QR diterima untuk ${pendingPaymentPlan.label}. Limit aktif: ${pendingPaymentPlan.limit}.`, "success");
+    const btn = document.getElementById('btn-submit-payment-proof');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Mengirim...`;
+    }
 
     try {
-        await neonDb.addReport({
-            category: `Pembayaran ${pendingPaymentPlan.label}`,
-            description: `Bukti transfer QR diunggah oleh ${userAccountState.email || userAccountState.username} (${pendingPaymentPlan.price})`,
-            timestamp: Date.now(),
-            date_string: new Date().toLocaleDateString('id-ID') + ' ' + new Date().toLocaleTimeString('id-ID'),
-            sender_id: userAccountState.sessionId || 'member'
+        // Simpan bukti transfer ke tabel `payments` (status: pending)
+        await neonDb.addPayment({
+            userEmail: userAccountState.email,
+            planKey: pendingPaymentPlan.key,
+            planLabel: pendingPaymentPlan.label,
+            amount: pendingPaymentPlan.price,
+            proofUrl: paymentProofDataUrl ? paymentProofDataUrl.substring(0, 500) : null, // ambil prefix base64 saja
+            dateString: new Date().toLocaleDateString('id-ID') + ' ' + new Date().toLocaleTimeString('id-ID'),
+            sessionId: userAccountState.sessionId || null,
+            notes: `Upgrade ke ${pendingPaymentPlan.label} (${pendingPaymentPlan.limit} limit)`
         });
-    } catch (e) { console.error('Report upload failed:', e); }
 
-    window.closePlanPaymentModal();
-    showToast(`Bukti pembayaran terkirim! ${pendingPaymentPlan.label} (${pendingPaymentPlan.limit} limit) aktif.`);
-    if (window.syncNeonReports) window.syncNeonReports();
+        // Aktifkan plan langsung (mode otomatis — admin bisa verifikasi manual di DB)
+        userAccountState.plan = pendingPaymentPlan.key;
+        userAccountState.maxLimit = pendingPaymentPlan.limit;
+        userAccountState.remainingLimit = pendingPaymentPlan.limit;
+        saveUserState();
+
+        // Sync user plan ke DB
+        await syncUserToDB();
+
+        appendTerminalLog(
+            `Bukti transfer diterima untuk ${pendingPaymentPlan.label}. Limit aktif: ${pendingPaymentPlan.limit}.`,
+            "success"
+        );
+
+        showToast(`Bukti pembayaran terkirim! ${pendingPaymentPlan.label} (${pendingPaymentPlan.limit} limit) aktif.`);
+        window.closePlanPaymentModal();
+
+        // Refresh report (kalau ada sync)
+        if (window.syncNeonReports) window.syncNeonReports();
+    } catch (e) {
+        console.error('Submit payment proof error:', e);
+        showToast("Gagal kirim bukti pembayaran: " + e.message);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Kirim Bukti Transfer`;
+            setGreenSubmitButtonState(false);
+        }
+    }
 };
 
+// =======================================================
+// MODAL REDEEM VOUCHER
+// =======================================================
 window.openRedeemModal = function(planType) {
     if (!userAccountState.isLoggedIn) {
         showToast("Silakan login akun terlebih dahulu sebelum mengaktifkan Plan!");
         window.setActiveTab('profil');
         return;
     }
+
     targetUpgradePlan = planType;
     const modal = document.getElementById('redeem-modal');
     const content = document.getElementById('redeem-modal-content');
     const title = document.getElementById('redeem-modal-title');
+    const input = document.getElementById('redeem-code-input');
+
     if (title) {
         title.textContent = planType === 'enterprise'
             ? 'Upgrade ke Plan Enterprise (1000 Limit)'
             : 'Upgrade ke Plan Pro (500 Limit)';
     }
+    if (input) input.value = '';
+
     if (modal && content) {
         modal.classList.remove('opacity-0', 'pointer-events-none');
         content.classList.remove('scale-95');
@@ -153,36 +203,63 @@ window.closeRedeemModal = function() {
     }
 };
 
-window.handleRedeemPlanCode = function() {
+// =======================================================
+// REDEEM VOUCHER → Validasi ke tabel `vouchers`
+// =======================================================
+window.handleRedeemPlanCode = async function() {
     if (!userAccountState.isLoggedIn) {
         showToast("Silakan login akun terlebih dahulu!");
         window.closeRedeemModal();
         window.setActiveTab('profil');
         return;
     }
+
     const codeInput = document.getElementById('redeem-code-input');
     const code = codeInput ? codeInput.value.trim().toUpperCase() : '';
-    if (!code) { showToast("Masukkan kode lisensi terlebih dahulu!"); return; }
+    if (!code) {
+        showToast("Masukkan kode lisensi terlebih dahulu!");
+        return;
+    }
 
-    if (code === 'AYAKAPRO500' || code.startsWith('PRO-')) {
-        userAccountState.plan = 'pro';
-        userAccountState.maxLimit = 500;
-        userAccountState.remainingLimit = 500;
-        saveUserState();
-        codeInput.value = '';
-        window.closeRedeemModal();
-        appendTerminalLog("Plan diupgrade ke PRO (500 limit aktif).", "success");
-        showToast("Selamat! Plan PRO (500 Limit + Bulk Akun) aktif!");
-    } else if (code === 'AYAKAENT1000' || code.startsWith('ENT-')) {
-        userAccountState.plan = 'enterprise';
-        userAccountState.maxLimit = 1000;
-        userAccountState.remainingLimit = 1000;
-        saveUserState();
-        codeInput.value = '';
-        window.closeRedeemModal();
-        appendTerminalLog("Plan diupgrade ke ENTERPRISE (1000 limit aktif).", "success");
-        showToast("Selamat! Plan ENTERPRISE (1000 Limit + Bulk Akun) aktif!");
-    } else {
-        showToast("Kode voucher tidak valid! Hubungi admin via WhatsApp.");
+    const btn = document.querySelector('#redeem-modal-content button[onclick="handleRedeemPlanCode()"]');
+    const originalBtnText = btn?.innerHTML;
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Memverifikasi...`;
+    }
+
+    try {
+        // Validasi voucher langsung ke tabel `vouchers` di Neon DB
+        const res = await neonDb.redeemVoucher(code, userAccountState.email);
+
+        if (res && res.success) {
+            userAccountState.plan = res.planKey;
+            userAccountState.maxLimit = res.maxLimit;
+            userAccountState.remainingLimit = res.maxLimit;
+            saveUserState();
+
+            // Sync plan baru ke tabel users
+            await syncUserToDB();
+
+            if (codeInput) codeInput.value = '';
+            window.closeRedeemModal();
+
+            appendTerminalLog(
+                `Voucher ${code} berhasil di-redeem. Plan: ${res.planKey.toUpperCase()} (${res.maxLimit} limit).`,
+                "success"
+            );
+            showToast(`Selamat! Plan ${res.planKey.toUpperCase()} aktif (${res.maxLimit} limit)!`);
+        } else {
+            appendTerminalLog(`Voucher ${code} gagal: ${res?.error || 'Tidak valid'}`, "error");
+            showToast(res?.error || "Kode voucher tidak valid atau sudah dipakai!");
+        }
+    } catch (e) {
+        console.error('Redeem voucher error:', e);
+        showToast("Gagal redeem voucher: " + e.message);
+    } finally {
+        if (btn && originalBtnText) {
+            btn.disabled = false;
+            btn.innerHTML = originalBtnText;
+        }
     }
 };
