@@ -31,11 +31,23 @@ export class NeonClient {
     async addReport(reportData) { return dbCall('addReport', reportData); }
     async getReports() { try { return (await dbCall('getReports')).rows || []; } catch { return []; } }
 
-    // Visitors
+    // Visitors (UPDATED)
     async updatePresence(visitorId, email = null) {
-        return dbCall('updatePresence', { visitorId, email, userAgent: navigator.userAgent });
+        return dbCall('updatePresence', { 
+            visitorId, 
+            email, 
+            userAgent: navigator.userAgent 
+        });
     }
-    async getActiveVisitors() { try { return (await dbCall('getActiveVisitors')).count; } catch { return null; } }
+    
+    async getActiveVisitors() { 
+        try { 
+            const res = await dbCall('getActiveVisitors'); 
+            return res.count; 
+        } catch { 
+            return null; // Return null agar UI tidak memunculkan angka random jika error
+        } 
+    }
 
     // Uptime
     async recordUptime(responseMs = 0) {
