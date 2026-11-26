@@ -1,4 +1,5 @@
 import { showToast, appendTerminalLog } from './utils.js';
+import { neonDb } from './neon-client.js';
 
 export const PLAN_CONFIG = {
     none: { name: 'BELUM LOGIN', maxLimit: 0, canBulk: false },
@@ -9,6 +10,7 @@ export const PLAN_CONFIG = {
 
 export let userAccountState = {
     isLoggedIn: false,
+    userId: '',
     username: 'Guest User',
     email: '',
     plan: 'none',
@@ -36,6 +38,7 @@ export function loadUserState() {
             }
         } else {
             userAccountState.sessionId = 'SES-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+            userAccountState.userId = crypto.randomUUID();
             userAccountState.loginTimestamp = Date.now();
             saveUserState();
         }
@@ -48,10 +51,27 @@ export function saveUserState() {
     refreshPlanAndProfileUI();
 }
 
+// Sync user + plan + limit ke Neon DB
+export async function syncUserToDB() {
+    if (!userAccountState.isLoggedIn || !userAccountState.email) return;
+    try {
+        await neonDb.upsertUser({
+            userId: userAccountState.userId || userAccountState.sessionId,
+            username: userAccountState.username,
+            email: userAccountState.email,
+            plan: userAccountState.plan,
+            remainingLimit: userAccountState.remainingLimit,
+            maxLimit: userAccountState.maxLimit,
+            hasClaimedFree: userAccountState.hasClaimedFreePlan
+        });
+    } catch (e) { console.error('syncUserToDB:', e); }
+}
+
 export function consumeActivationLimit(amount = 1) {
     if (!userAccountState.isLoggedIn || userAccountState.remainingLimit < amount) return false;
     userAccountState.remainingLimit = Math.max(0, userAccountState.remainingLimit - amount);
     saveUserState();
+    syncUserToDB().catch(() => {});
     return true;
 }
 
@@ -161,13 +181,14 @@ export function refreshPlanAndProfileUI() {
     }
 }
 
-window.handleRealTimeLogin = function(e) {
+window.handleRealTimeLogin = async function(e) {
     if (e) e.preventDefault();
     const nameVal = document.getElementById('login-username-input').value.trim();
     const emailVal = document.getElementById('login-email-input').value.trim();
     if (!nameVal || !emailVal) return;
 
     userAccountState.isLoggedIn = true;
+    userAccountState.userId = userAccountState.userId || crypto.randomUUID();
     userAccountState.username = nameVal;
     userAccountState.email = emailVal;
     userAccountState.sessionId = 'SES-' + Date.now().toString(36).toUpperCase();
@@ -184,13 +205,33 @@ window.handleRealTimeLogin = function(e) {
     }
 
     saveUserState();
+
+    // --- Simpan user ke DB ---
+    await syncUserToDB();
+
+    // --- Simpan sesi login ke DB ---
+    try {
+        await neonDb.startSession({
+            sessionId: userAccountState.sessionId,
+            userId: userAccountState.userId,
+            email: userAccountState.email,
+            username: userAccountState.username,
+            userAgent: navigator.userAgent
+        });
+    } catch (err) { console.error('startSession:', err); }
+
     document.getElementById('login-username-input').value = '';
     document.getElementById('login-email-input').value = '';
     appendTerminalLog(`Sesi login aktif untuk ${nameVal} (${emailVal}). Plan: ${userAccountState.plan.toUpperCase()} | Sisa limit: ${userAccountState.remainingLimit}.`, "success");
     showToast(`Login berhasil! Plan ${userAccountState.plan.toUpperCase()} aktif (${userAccountState.remainingLimit} limit).`);
 };
 
-window.handleRealTimeLogout = function() {
+window.handleRealTimeLogout = async function() {
+    // --- Akhiri sesi di DB ---
+    try {
+        if (userAccountState.sessionId) await neonDb.endSession(userAccountState.sessionId);
+    } catch (err) { console.error('endSession:', err); }
+
     userAccountState.isLoggedIn = false;
     userAccountState.username = 'Guest User';
     userAccountState.email = '';
