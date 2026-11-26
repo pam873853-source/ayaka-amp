@@ -6,6 +6,7 @@ let tablesInitialized = false;
 async function ensureTables() {
     if (!sql || tablesInitialized) return;
 
+    // Users
     await sql`CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         user_id TEXT UNIQUE NOT NULL,
@@ -19,6 +20,8 @@ async function ensureTables() {
         created_at BIGINT NOT NULL,
         updated_at BIGINT NOT NULL
     )`;
+
+    // Sessions
     await sql`CREATE TABLE IF NOT EXISTS sessions (
         id SERIAL PRIMARY KEY,
         session_id TEXT UNIQUE NOT NULL,
@@ -32,6 +35,8 @@ async function ensureTables() {
         ip_address TEXT,
         user_agent TEXT
     )`;
+
+    // Activations
     await sql`CREATE TABLE IF NOT EXISTS activations (
         id SERIAL PRIMARY KEY,
         user_email TEXT NOT NULL,
@@ -44,6 +49,8 @@ async function ensureTables() {
         status TEXT NOT NULL DEFAULT 'success',
         notes TEXT
     )`;
+
+    // Reports
     await sql`CREATE TABLE IF NOT EXISTS reports (
         id SERIAL PRIMARY KEY,
         category TEXT NOT NULL,
@@ -56,6 +63,8 @@ async function ensureTables() {
         status TEXT NOT NULL DEFAULT 'open',
         admin_notes TEXT
     )`;
+
+    // Visitors (UPDATED)
     await sql`CREATE TABLE IF NOT EXISTS visitors (
         visitor_id TEXT PRIMARY KEY,
         last_seen BIGINT NOT NULL,
@@ -63,6 +72,8 @@ async function ensureTables() {
         user_email TEXT,
         user_agent TEXT
     )`;
+
+    // Uptime
     await sql`CREATE TABLE IF NOT EXISTS uptime (
         id SERIAL PRIMARY KEY,
         check_at BIGINT NOT NULL,
@@ -72,6 +83,8 @@ async function ensureTables() {
         node_version TEXT,
         region TEXT
     )`;
+
+    // Payments
     await sql`CREATE TABLE IF NOT EXISTS payments (
         id SERIAL PRIMARY KEY,
         user_email TEXT NOT NULL,
@@ -85,6 +98,8 @@ async function ensureTables() {
         session_id TEXT,
         notes TEXT
     )`;
+
+    // Vouchers
     await sql`CREATE TABLE IF NOT EXISTS vouchers (
         id SERIAL PRIMARY KEY,
         code TEXT UNIQUE NOT NULL,
@@ -102,6 +117,7 @@ async function ensureTables() {
     await sql`CREATE INDEX IF NOT EXISTS idx_activations_timestamp ON activations(timestamp DESC)`;
     await sql`CREATE INDEX IF NOT EXISTS idx_reports_timestamp ON reports(timestamp DESC)`;
     await sql`CREATE INDEX IF NOT EXISTS idx_uptime_check_at ON uptime(check_at DESC)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_visitors_last_seen ON visitors(last_seen DESC)`;
 
     tablesInitialized = true;
 }
@@ -195,24 +211,33 @@ export default async function handler(req, res) {
                 return res.status(200).json({ rows: rows.map(r => ({ ...r, timestamp: Number(r.timestamp) })) });
             }
 
-            // ---------- VISITORS ----------
+            // ---------- VISITORS (AKURAT) ----------
             case 'updatePresence': {
+                if (!data.visitorId) return res.status(400).json({ error: 'Missing visitorId' });
+                
+                // 1. Update last_seen atau insert jika belum ada
                 await sql`INSERT INTO visitors (visitor_id, last_seen, first_seen, user_email, user_agent)
                     VALUES (${data.visitorId}, ${now}, ${now}, ${data.email || null}, ${data.userAgent || null})
-                    ON CONFLICT (visitor_id) DO UPDATE SET last_seen = ${now}, user_email = COALESCE(${data.email || null}, visitors.user_email)`;
+                    ON CONFLICT (visitor_id) DO UPDATE SET 
+                        last_seen = ${now}, 
+                        user_email = COALESCE(${data.email || null}, visitors.user_email)`;
+                
+                // 2. Auto-Cleanup: Hapus data visitor yang tidak aktif lebih dari 1 Jam (3600000 ms)
+                await sql`DELETE FROM visitors WHERE last_seen < ${now - 3600000}`;
+                
                 return res.status(200).json({ success: true });
             }
             case 'getActiveVisitors': {
-                const cutoff = now - 60000;
+                // Hitung visitor yang aktif dalam 2 menit terakhir (120000 ms)
+                const cutoff = now - 120000;
                 const rows = await sql`SELECT COUNT(*)::int AS count FROM visitors WHERE last_seen > ${cutoff}`;
-                return res.status(200).json({ count: rows?.[0]?.count || 1 });
+                return res.status(200).json({ count: rows?.[0]?.count || 0 });
             }
 
             // ---------- UPTIME ----------
             case 'recordUptime': {
                 await sql`INSERT INTO uptime (check_at, status, response_ms, app_version, node_version, region)
                     VALUES (${now}, 'up', ${data.responseMs || 0}, ${data.appVersion || '1.0.0'}, ${process.version}, ${process.env.VERCEL_REGION || 'unknown'})`;
-                // Cleanup record >7 hari
                 await sql`DELETE FROM uptime WHERE check_at < ${now - 7 * 86400000}`;
                 return res.status(200).json({ success: true });
             }
