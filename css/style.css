@@ -1,0 +1,135 @@
+body {
+    background-color: #fef08a;
+    background-image: 
+        linear-gradient(to right, rgba(0, 0, 0, 0.05) 2px, transparent 2px),
+        linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 2px, transparent 2px);
+    background-size: 24px 24px;
+    color: #000000;
+    font-family: 'Inter', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+}
+
+.neo-card {
+    background-color: #ffffff;
+    border: 3px solid #000000;
+    box-shadow: 4px 4px 0px #000000;
+    border-radius: 16px;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    will-change: transform;
+}
+.neo-card-yellow {
+    background-color: #facc15;
+    border: 3px solid #000000;
+    box-shadow: 4px 4px 0px #000000;
+    border-radius: 16px;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    will-change: transform;
+}
+.neo-card-dark {
+    background-color: #18181b;
+    color: #ffffff;
+    border: 3px solid #000000;
+    box-shadow: 4px 4px 0px #000000;
+    border-radius: 16px;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    will-change: transform;
+}
+.neo-btn {
+    background-color: #ffffff;
+    color: #000000;
+    border: 3px solid #000000;
+    box-shadow: 4px 4px 0px #000000;
+    border-radius: 12px;
+    font-weight: 800;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    will-change: transform;
+}
+.neo-btn-yellow {
+    background-color: #facc15;
+    color: #000000;
+    border: 3px solid #000000;
+    box-shadow: 4px 4px 0px #000000;
+    border-radius: 12px;
+    font-weight: 800;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    will-change: transform;
+}
+.neo-btn-dark {
+    background-color: #18181b;
+    color: #ffffff;
+    border: 3px solid #000000;
+    box-shadow: 4px 4px 0px #000000;
+    border-radius: 12px;
+    font-weight: 800;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    will-change: transform;
+}
+.neo-input {
+    background-color: #f4f4f5;
+    border: 3px solid #000000;
+    border-radius: 12px;
+    color: #000000;
+    font-weight: 600;
+}
+.neo-input:focus {
+    background-color: #ffffff;
+    outline: none;
+    box-shadow: 3px 3px 0px #000000;
+}
+.bottom-nav {
+    background-color: #ffffff;
+    border-top: 3px solid #000000;
+    box-shadow: 0 -4px 0px rgba(0, 0, 0, 0.1);
+}
+.tab-anim-enter { animation: popInTab 0.25s ease-out forwards; }
+@keyframes popInTab {
+    0% { opacity: 0; transform: scale(0.97) translateY(6px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes floatPlanet {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-8px) rotate(5deg); }
+}
+@keyframes flyRocket {
+    0% { transform: translate3d(-30px, 30px, 0) rotate(-15deg); opacity: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { transform: translate3d(280px, -280px, 0) rotate(-15deg); opacity: 0; }
+}
+@keyframes flyUfo {
+    0% { transform: translate3d(-50px, 80px, 0) rotate(-8deg); opacity: 0; }
+    20% { opacity: 1; transform: translate3d(60px, 30px, 0) rotate(4deg); }
+    50% { transform: translate3d(150px, 60px, 0) rotate(-4deg); }
+    80% { opacity: 1; transform: translate3d(240px, 15px, 0) rotate(8deg); }
+    100% { transform: translate3d(330px, -50px, 0) rotate(-8deg); opacity: 0; }
+}
+@keyframes hoverUfo {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-6px); }
+}
+@keyframes shootMeteor {
+    0% { transform: translate3d(120px, -80px, 0) scale(0.6); opacity: 0; }
+    20% { opacity: 1; }
+    70% { opacity: 1; }
+    100% { transform: translate3d(-200px, 240px, 0) scale(1.1); opacity: 0; }
+}
+@keyframes floatCloud {
+    0%, 100% { transform: translateX(0px); }
+    50% { transform: translateX(12px); }
+}
+.anim-planet { animation: floatPlanet 4s ease-in-out infinite; will-change: transform; }
+.anim-rocket { animation: flyRocket 9s linear infinite; will-change: transform; }
+.anim-ufo { animation: flyUfo 13s ease-in-out infinite; will-change: transform; }
+.anim-ufo-hover { animation: hoverUfo 2s ease-in-out infinite; }
+.anim-meteor { animation: shootMeteor 6s linear infinite; will-change: transform; }
+.anim-cloud { animation: floatCloud 5s ease-in-out infinite; will-change: transform; }
