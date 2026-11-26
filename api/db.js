@@ -6,7 +6,6 @@ let tablesInitialized = false;
 async function ensureTables() {
     if (!sql || tablesInitialized) return;
 
-    // Users
     await sql`CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         user_id TEXT UNIQUE NOT NULL,
@@ -21,11 +20,10 @@ async function ensureTables() {
         updated_at BIGINT NOT NULL
     )`;
 
-    // Sessions
     await sql`CREATE TABLE IF NOT EXISTS sessions (
         id SERIAL PRIMARY KEY,
         session_id TEXT UNIQUE NOT NULL,
-        user_id TEXT REFERENCES users(user_id) ON DELETE SET NULL,
+        user_id TEXT,
         email TEXT,
         username TEXT,
         login_at BIGINT NOT NULL,
@@ -36,7 +34,6 @@ async function ensureTables() {
         user_agent TEXT
     )`;
 
-    // Activations
     await sql`CREATE TABLE IF NOT EXISTS activations (
         id SERIAL PRIMARY KEY,
         user_email TEXT NOT NULL,
@@ -50,7 +47,6 @@ async function ensureTables() {
         notes TEXT
     )`;
 
-    // Reports
     await sql`CREATE TABLE IF NOT EXISTS reports (
         id SERIAL PRIMARY KEY,
         category TEXT NOT NULL,
@@ -64,16 +60,18 @@ async function ensureTables() {
         admin_notes TEXT
     )`;
 
-    // Visitors (UPDATED)
+    // ===== VISITORS — versi LENGKAP =====
     await sql`CREATE TABLE IF NOT EXISTS visitors (
         visitor_id TEXT PRIMARY KEY,
         last_seen BIGINT NOT NULL,
         first_seen BIGINT NOT NULL DEFAULT 0,
         user_email TEXT,
-        user_agent TEXT
+        user_agent TEXT,
+        ip_address TEXT,
+        referrer TEXT,
+        total_visits INTEGER NOT NULL DEFAULT 1
     )`;
 
-    // Uptime
     await sql`CREATE TABLE IF NOT EXISTS uptime (
         id SERIAL PRIMARY KEY,
         check_at BIGINT NOT NULL,
@@ -84,7 +82,6 @@ async function ensureTables() {
         region TEXT
     )`;
 
-    // Payments
     await sql`CREATE TABLE IF NOT EXISTS payments (
         id SERIAL PRIMARY KEY,
         user_email TEXT NOT NULL,
@@ -99,7 +96,6 @@ async function ensureTables() {
         notes TEXT
     )`;
 
-    // Vouchers
     await sql`CREATE TABLE IF NOT EXISTS vouchers (
         id SERIAL PRIMARY KEY,
         code TEXT UNIQUE NOT NULL,
@@ -111,13 +107,10 @@ async function ensureTables() {
         created_at BIGINT NOT NULL
     )`;
 
-    // Indexes
-    await sql`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_sessions_active ON sessions(is_active, last_seen)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_visitors_last_seen ON visitors(last_seen DESC)`;
     await sql`CREATE INDEX IF NOT EXISTS idx_activations_timestamp ON activations(timestamp DESC)`;
     await sql`CREATE INDEX IF NOT EXISTS idx_reports_timestamp ON reports(timestamp DESC)`;
     await sql`CREATE INDEX IF NOT EXISTS idx_uptime_check_at ON uptime(check_at DESC)`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_visitors_last_seen ON visitors(last_seen DESC)`;
 
     tablesInitialized = true;
 }
@@ -126,14 +119,15 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
     if (!sql) return res.status(503).json({ error: 'Database not configured' });
 
-    try { await ensureTables(); } catch (e) { return res.status(500).json({ error: 'Schema init failed', detail: e.message }); }
+    try { await ensureTables(); }
+    catch (e) { return res.status(500).json({ error: 'Schema init failed', detail: e.message }); }
 
     const { action, data = {} } = req.body || {};
     const now = Date.now();
 
     try {
         switch (action) {
-            // ---------- USERS ----------
+            // ===== USERS =====
             case 'upsertUser': {
                 await sql`INSERT INTO users (user_id, username, email, plan, remaining_limit, max_limit, has_claimed_free, created_at, updated_at)
                     VALUES (${data.userId}, ${data.username}, ${data.email}, ${data.plan}, ${data.remainingLimit}, ${data.maxLimit}, ${data.hasClaimedFree}, ${now}, ${now})
@@ -157,7 +151,7 @@ export default async function handler(req, res) {
                 return res.status(200).json({ user: rows?.[0] || null });
             }
 
-            // ---------- SESSIONS ----------
+            // ===== SESSIONS =====
             case 'startSession': {
                 await sql`INSERT INTO sessions (session_id, user_id, email, username, login_at, last_seen, is_active, ip_address, user_agent)
                     VALUES (${data.sessionId}, ${data.userId || null}, ${data.email || null}, ${data.username || null}, ${now}, ${now}, TRUE, ${data.ip || null}, ${data.userAgent || null})
@@ -165,13 +159,11 @@ export default async function handler(req, res) {
                 return res.status(200).json({ success: true });
             }
             case 'endSession': {
-                await sql`UPDATE sessions SET is_active = FALSE, logout_at = ${now}, last_seen = ${now}
-                    WHERE session_id = ${data.sessionId}`;
+                await sql`UPDATE sessions SET is_active = FALSE, logout_at = ${now}, last_seen = ${now} WHERE session_id = ${data.sessionId}`;
                 return res.status(200).json({ success: true });
             }
             case 'heartbeatSession': {
-                await sql`UPDATE sessions SET last_seen = ${now}
-                    WHERE session_id = ${data.sessionId} AND is_active = TRUE`;
+                await sql`UPDATE sessions SET last_seen = ${now} WHERE session_id = ${data.sessionId} AND is_active = TRUE`;
                 return res.status(200).json({ success: true });
             }
             case 'getActiveSessions': {
@@ -187,7 +179,7 @@ export default async function handler(req, res) {
                 return res.status(200).json({ rows: rows.map(r => ({ ...r, login_at: Number(r.login_at), logout_at: r.logout_at ? Number(r.logout_at) : null })) });
             }
 
-            // ---------- ACTIVATIONS ----------
+            // ===== ACTIVATIONS =====
             case 'addActivation': {
                 await sql`INSERT INTO activations (user_email, package_type, timestamp, date_string, sender_id, session_id, user_id, status, notes)
                     VALUES (${data.user}, ${data.type}, ${data.timestamp}, ${data.dateString}, ${data.sender_id || 'anon'}, ${data.session_id || null}, ${data.user_id || null}, ${data.status || 'success'}, ${data.notes || null})`;
@@ -199,7 +191,7 @@ export default async function handler(req, res) {
                 return res.status(200).json({ rows: rows.map(r => ({ ...r, timestamp: Number(r.timestamp) })) });
             }
 
-            // ---------- REPORTS ----------
+            // ===== REPORTS =====
             case 'addReport': {
                 await sql`INSERT INTO reports (category, description, timestamp, date_string, sender_id, user_email, session_id, status)
                     VALUES (${data.category}, ${data.description}, ${data.timestamp}, ${data.date_string}, ${data.sender_id || 'Anonymous'}, ${data.user_email || null}, ${data.session_id || null}, ${data.status || 'open'})`;
@@ -211,30 +203,41 @@ export default async function handler(req, res) {
                 return res.status(200).json({ rows: rows.map(r => ({ ...r, timestamp: Number(r.timestamp) })) });
             }
 
-            // ---------- VISITORS (AKURAT) ----------
+            // ===== VISITORS (AKURAT) =====
             case 'updatePresence': {
                 if (!data.visitorId) return res.status(400).json({ error: 'Missing visitorId' });
-                
-                // 1. Update last_seen atau insert jika belum ada
-                await sql`INSERT INTO visitors (visitor_id, last_seen, first_seen, user_email, user_agent)
-                    VALUES (${data.visitorId}, ${now}, ${now}, ${data.email || null}, ${data.userAgent || null})
-                    ON CONFLICT (visitor_id) DO UPDATE SET 
-                        last_seen = ${now}, 
-                        user_email = COALESCE(${data.email || null}, visitors.user_email)`;
-                
-                // 2. Auto-Cleanup: Hapus data visitor yang tidak aktif lebih dari 1 Jam (3600000 ms)
+
+                const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || null;
+
+                // UPSERT: kalau sudah ada, update last_seen + increment total_visits
+                // kalau baru, insert baru dengan total_visits = 1
+                await sql`INSERT INTO visitors (visitor_id, last_seen, first_seen, user_email, user_agent, ip_address, total_visits)
+                    VALUES (${data.visitorId}, ${now}, ${now}, ${data.email || null}, ${data.userAgent || null}, ${ip}, 1)
+                    ON CONFLICT (visitor_id) DO UPDATE SET
+                        last_seen = ${now},
+                        user_email = COALESCE(${data.email || null}, visitors.user_email),
+                        total_visits = visitors.total_visits + 1`;
+
+                // Auto-cleanup: hapus visitor yang tidak aktif > 1 jam (biar DB tidak bengkak)
                 await sql`DELETE FROM visitors WHERE last_seen < ${now - 3600000}`;
-                
+
                 return res.status(200).json({ success: true });
             }
             case 'getActiveVisitors': {
-                // Hitung visitor yang aktif dalam 2 menit terakhir (120000 ms)
+                // Hanya hitung visitor yang aktif dalam 2 menit terakhir
                 const cutoff = now - 120000;
                 const rows = await sql`SELECT COUNT(*)::int AS count FROM visitors WHERE last_seen > ${cutoff}`;
                 return res.status(200).json({ count: rows?.[0]?.count || 0 });
             }
+            case 'getVisitorStats': {
+                // Total pengunjung hari ini
+                const startOfDay = new Date(); startOfDay.setHours(0,0,0,0);
+                const dayStart = startOfDay.getTime();
+                const rows = await sql`SELECT COUNT(*)::int AS count FROM visitors WHERE first_seen >= ${dayStart}`;
+                return res.status(200).json({ todayCount: rows?.[0]?.count || 0 });
+            }
 
-            // ---------- UPTIME ----------
+            // ===== UPTIME =====
             case 'recordUptime': {
                 await sql`INSERT INTO uptime (check_at, status, response_ms, app_version, node_version, region)
                     VALUES (${now}, 'up', ${data.responseMs || 0}, ${data.appVersion || '1.0.0'}, ${process.version}, ${process.env.VERCEL_REGION || 'unknown'})`;
@@ -243,9 +246,7 @@ export default async function handler(req, res) {
             }
             case 'getUptimeStats': {
                 const since = now - 24 * 3600000;
-                const rows = await sql`SELECT
-                    COUNT(*)::int AS total,
-                    SUM(CASE WHEN status = 'up' THEN 1 ELSE 0 END)::int AS up_count
+                const rows = await sql`SELECT COUNT(*)::int AS total, SUM(CASE WHEN status = 'up' THEN 1 ELSE 0 END)::int AS up_count
                     FROM uptime WHERE check_at > ${since}`;
                 const total = rows?.[0]?.total || 0;
                 const upCount = rows?.[0]?.up_count || 0;
@@ -253,7 +254,7 @@ export default async function handler(req, res) {
                 return res.status(200).json({ total, upCount, uptimePercentage: pct });
             }
 
-            // ---------- PAYMENTS ----------
+            // ===== PAYMENTS =====
             case 'addPayment': {
                 await sql`INSERT INTO payments (user_email, plan_key, plan_label, amount, proof_url, status, timestamp, date_string, session_id, notes)
                     VALUES (${data.userEmail}, ${data.planKey}, ${data.planLabel}, ${data.amount}, ${data.proofUrl || null}, 'pending', ${now}, ${data.dateString || ''}, ${data.sessionId || null}, ${data.notes || null})`;
@@ -265,7 +266,7 @@ export default async function handler(req, res) {
                 return res.status(200).json({ rows: rows.map(r => ({ ...r, timestamp: Number(r.timestamp) })) });
             }
 
-            // ---------- VOUCHERS ----------
+            // ===== VOUCHERS =====
             case 'redeemVoucher': {
                 const v = await sql`SELECT * FROM vouchers WHERE code = ${data.code} AND used = FALSE LIMIT 1`;
                 if (!v || v.length === 0) return res.status(404).json({ success: false, error: 'Voucher tidak valid atau sudah dipakai' });
@@ -280,7 +281,7 @@ export default async function handler(req, res) {
             }
 
             default:
-                return res.status(400).json({ error: 'Unknown action' });
+                return res.status(400).json({ error: 'Unknown action: ' + action });
         }
     } catch (e) {
         console.error(`DB ${action} error:`, e);
