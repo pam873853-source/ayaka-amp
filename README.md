@@ -112,4 +112,4 @@ Atau connect repo ke Vercel Dashboard, lalu set Environment Variables di **Proje
 
 ## 📞 Support
 
-WhatsApp: [wa.me/6285888116002](https://wa.me/6285888116002)
+WhatsApp: [https://whatsapp.com/channel/0029VbENXAJIt5s512xENd0Z]
