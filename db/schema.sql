@@ -85,16 +85,13 @@ CREATE INDEX IF NOT EXISTS idx_reports_email     ON reports(user_email);
 -- 5. VISITORS — Presence Pengunjung Online (60s window)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS visitors (
-    visitor_id TEXT PRIMARY KEY,
-    last_seen BIGINT NOT NULL,
-    first_seen BIGINT NOT NULL DEFAULT 0,
-    user_email TEXT,
-    user_agent TEXT,
-    ip_address TEXT
+    visitor_id      TEXT PRIMARY KEY,
+    last_seen       BIGINT NOT NULL,
+    first_seen      BIGINT NOT NULL DEFAULT 0,
+    user_email      TEXT,
+    user_agent      TEXT
 );
-
--- Index untuk mempercepat pencarian pengunjung aktif
-CREATE INDEX IF NOT EXISTS idx_visitors_last_seen ON visitors(last_seen DESC);
+CREATE INDEX IF NOT EXISTS idx_visitors_last_seen ON visitors(last_seen);
 
 -- ============================================================
 -- 6. UPTIME — Server Uptime Tracking (heartbeat per menit)
