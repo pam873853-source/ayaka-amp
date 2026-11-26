@@ -1,11 +1,9 @@
 import { loadConfig } from './config.js';
-import { pingPresence } from './firebase.js';
-import { loadUserState } from './user-session.js';
-import { syncNeonActivations, syncNeonReports } from './data.js';
+import { loadUserState, userAccountState } from './user-session.js';
+import { syncNeonActivations, syncNeonReports, setTotalVisitors } from './data.js';
 import { initUI } from './ui.js';
 import { neonDb } from './neon-client.js';
 
-// Import untuk side-effect (attach ke window)
 import './utils.js';
 import './plan.js';
 import './amp-api.js';
@@ -14,44 +12,58 @@ import './ai-chat.js';
 
 (async function bootstrap() {
     let config;
-    try {
-        config = await loadConfig();
-    } catch (e) {
-        console.error('Bootstrap config load failed:', e);
-        config = { appId: 'ayaka-motion-default', firebaseConfig: {} };
-    }
+    try { config = await loadConfig(); }
+    catch (e) { console.error('loadConfig failed:', e); config = { appId: 'ayaka-motion-default' }; }
     window.__config = config;
 
-    // Init "firebase" (sekarang hanya generate userId lokal)
-    await pingPresence();
+    if (!window.__userId) window.__userId = crypto.randomUUID();
 
-    // Presence via Neon
-    let visitorId = window.__userId || crypto.randomUUID();
-    window.__userId = visitorId;
+    // ----- UPTIME: catat saat app load -----
+    const t0 = performance.now();
+    try { await neonDb.recordUptime(Math.round(performance.now() - t0)); }
+    catch (e) { console.error('recordUptime:', e); }
 
-    const pingNeon = async () => {
+    // ----- Presence -----
+    const pingPresence = async () => {
         try {
-            await neonDb.updatePresence(visitorId);
+            await neonDb.updatePresence(window.__userId, userAccountState.email || null);
             const count = await neonDb.getActiveVisitors();
-            if (typeof count === 'number') {
-                const { setTotalVisitors } = await import('./data.js');
-                setTotalVisitors(Math.max(1, count));
-            }
+            if (typeof count === 'number') setTotalVisitors(Math.max(1, count));
         } catch (e) { /* silent */ }
     };
-    await pingNeon();
-    setInterval(pingNeon, 12000);
+    await pingPresence();
 
-    // User state
+    // ----- User state -----
     loadUserState();
 
-    // Sinkron data dari Neon
-    try { await syncNeonActivations(); } catch (e) { console.error(e); }
-    try { await syncNeonReports(); } catch (e) { console.error(e); }
+    // ----- Sinkron data awal -----
+    try { await syncNeonActivations(); } catch (e) {}
+    try { await syncNeonReports(); } catch (e) {}
+
+    // ----- Uptime widget (24h) -----
+    async function refreshUptimeBadge() {
+        try {
+            const stats = await neonDb.getUptimeStats();
+            const el = document.getElementById('server-uptime-pct');
+            if (el) el.textContent = `${stats.uptimePercentage}%`;
+        } catch (e) {}
+    }
+    refreshUptimeBadge();
+
+    // ----- Periodic jobs -----
+    setInterval(pingPresence, 12000);                                 // presence 12s
+    setInterval(refreshUptimeBadge, 60000);                           // uptime widget 60s
+    setInterval(() => neonDb.recordUptime(0).catch(() => {}), 60000); // record uptime 60s
     setInterval(() => {
         syncNeonActivations().catch(() => {});
         syncNeonReports().catch(() => {});
-    }, 8000);
+    }, 8000);                                                          // data sync 8s
+    setInterval(() => {
+        // heartbeat sesi aktif
+        if (userAccountState.isLoggedIn && userAccountState.sessionId) {
+            neonDb.heartbeatSession(userAccountState.sessionId).catch(() => {});
+        }
+    }, 30000);                                                          // session heartbeat 30s
 
     initUI();
 })();
