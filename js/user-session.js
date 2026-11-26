@@ -51,7 +51,7 @@ export function saveUserState() {
     refreshPlanAndProfileUI();
 }
 
-// ===== WAJIB: dipakai oleh plan.js & app.js =====
+// Sync user + plan + limit ke Neon DB
 export async function syncUserToDB() {
     if (!userAccountState.isLoggedIn || !userAccountState.email) return;
     try {
@@ -77,14 +77,14 @@ export function consumeActivationLimit(amount = 1) {
 
 export function ensureUserLoggedInForActivation() {
     if (!userAccountState.isLoggedIn) {
-        showToast("Silakan login terlebih dahulu di menu Profil & Sesi!");
-        appendTerminalLog("Akses ditolak: Anda belum login.", "warn");
+        showToast("Silakan login terlebih dahulu di menu Profil & Sesi untuk mendapatkan Plan Free & melakukan aktivasi!");
+        appendTerminalLog("Akses ditolak: Anda belum login. Silakan login dulu untuk mendapatkan Plan Free.", "warn");
         window.setActiveTab('profil');
         return false;
     }
     if (userAccountState.remainingLimit <= 0) {
-        showToast("Sisa limit Anda sudah HABIS (0)! Upgrade ke Plan Pro atau Enterprise.");
-        appendTerminalLog("Limit habis (0).", "error");
+        showToast("Sisa limit Anda sudah HABIS (0)! Beli Plan Pro atau Enterprise untuk melanjutkan aktivasi.");
+        appendTerminalLog("Limit habis (0). Upgrade ke Plan Pro atau Enterprise diperlukan.", "error");
         window.setActiveTab('plan');
         return false;
     }
@@ -206,7 +206,10 @@ window.handleRealTimeLogin = async function(e) {
 
     saveUserState();
 
-    try { await syncUserToDB(); } catch (err) { console.error('syncUserToDB:', err); }
+    // --- Simpan user ke DB ---
+    await syncUserToDB();
+
+    // --- Simpan sesi login ke DB ---
     try {
         await neonDb.startSession({
             sessionId: userAccountState.sessionId,
@@ -224,6 +227,7 @@ window.handleRealTimeLogin = async function(e) {
 };
 
 window.handleRealTimeLogout = async function() {
+    // --- Akhiri sesi di DB ---
     try {
         if (userAccountState.sessionId) await neonDb.endSession(userAccountState.sessionId);
     } catch (err) { console.error('endSession:', err); }
@@ -236,6 +240,6 @@ window.handleRealTimeLogout = async function() {
     userAccountState.sessionId = 'SES-GUEST-' + Math.random().toString(36).substring(2, 6).toUpperCase();
     userAccountState.loginTimestamp = Date.now();
     saveUserState();
-    appendTerminalLog("Sesi logout.", "warn");
-    showToast("Sesi logout berhasil.");
+    appendTerminalLog("Sesi logout. Login kembali untuk menggunakan aktivasi & Plan Free.", "warn");
+    showToast("Sesi logout berhasil. Silakan login kembali untuk menggunakan aktivasi.");
 };
