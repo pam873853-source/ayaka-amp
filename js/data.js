@@ -3,7 +3,7 @@ import { neonDb } from './neon-client.js';
 
 export let historyLogs = [];
 export let reportsLogs = [];
-export let totalVisitors = 1;
+export let totalVisitors = 0; // Mulai dari 0, bukan 1
 let realTimeChart = null;
 
 export function setHistoryLogs(logs) {
@@ -19,7 +19,8 @@ export function setReportsLogs(logs) {
 }
 
 export function setTotalVisitors(n) {
-    totalVisitors = n;
+    // Pastikan tidak pernah minus
+    totalVisitors = Math.max(0, n);
     updateCounts();
 }
 
@@ -64,17 +65,26 @@ export function renderReports() {
 }
 
 export function updateCounts() {
+    // --- Hitung Aktivasi ---
     const countActivations = historyLogs.length;
     const actEl = document.getElementById('activations-count');
     const actTotalEl = document.getElementById('act-total-count');
     const actTodayEl = document.getElementById('act-today-count');
+    
     if (actEl) actEl.textContent = countActivations;
     if (actTotalEl) actTotalEl.textContent = countActivations;
+    
     const todayStr = new Date().toDateString();
     const todayCount = historyLogs.filter(h => h.dateString === todayStr || h.date_string?.includes(todayStr)).length;
     if (actTodayEl) actTodayEl.textContent = todayCount;
+
+    // --- Hitung Pengunjung Online (Akurat) ---
     const visitorsEl = document.getElementById('visitors-count');
-    if (visitorsEl) visitorsEl.textContent = Math.max(1, totalVisitors);
+    if (visitorsEl) {
+        // Tampilkan angka dari DB, bukan angka random
+        visitorsEl.textContent = totalVisitors;
+    }
+    
     updateChartData();
 }
 
