@@ -10,21 +10,49 @@ async function dbCall(action, data = {}) {
 
 export class NeonClient {
     isConfigured() { return true; }
-    async addActivation(logData) { await dbCall('addActivation', logData); }
-    async getActivations() {
-        try { const r = await dbCall('getActivations'); return r.rows || []; }
-        catch (e) { console.error('getActivations:', e); return []; }
+
+    // Users
+    async upsertUser(userData) { return dbCall('upsertUser', userData); }
+    async getUsers() { try { return (await dbCall('getUsers')).rows || []; } catch { return []; } }
+    async getUserByEmail(email) { try { return (await dbCall('getUserByEmail', { email })).user; } catch { return null; } }
+
+    // Sessions
+    async startSession(sessionData) { return dbCall('startSession', sessionData); }
+    async endSession(sessionId) { return dbCall('endSession', { sessionId }); }
+    async heartbeatSession(sessionId) { return dbCall('heartbeatSession', { sessionId }); }
+    async getActiveSessions() { try { return (await dbCall('getActiveSessions')).rows || []; } catch { return []; } }
+    async getSessionHistory() { try { return (await dbCall('getSessionHistory')).rows || []; } catch { return []; } }
+
+    // Activations
+    async addActivation(logData) { return dbCall('addActivation', logData); }
+    async getActivations() { try { return (await dbCall('getActivations')).rows || []; } catch { return []; } }
+
+    // Reports
+    async addReport(reportData) { return dbCall('addReport', reportData); }
+    async getReports() { try { return (await dbCall('getReports')).rows || []; } catch { return []; } }
+
+    // Visitors
+    async updatePresence(visitorId, email = null) {
+        return dbCall('updatePresence', { visitorId, email, userAgent: navigator.userAgent });
     }
-    async addReport(reportData) { await dbCall('addReport', reportData); }
-    async getReports() {
-        try { const r = await dbCall('getReports'); return r.rows || []; }
-        catch (e) { console.error('getReports:', e); return []; }
+    async getActiveVisitors() { try { return (await dbCall('getActiveVisitors')).count; } catch { return null; } }
+
+    // Uptime
+    async recordUptime(responseMs = 0) {
+        return dbCall('recordUptime', { responseMs, appVersion: '1.0.0' });
     }
-    async updatePresence(visitorId) { await dbCall('updatePresence', { visitorId }); }
-    async getActiveVisitors() {
-        try { const r = await dbCall('getActiveVisitors'); return r.count; }
-        catch (e) { console.error('getActiveVisitors:', e); return null; }
+    async getUptimeStats() {
+        try { return await dbCall('getUptimeStats'); }
+        catch { return { total: 0, upCount: 0, uptimePercentage: '100.0' }; }
     }
+
+    // Payments
+    async addPayment(paymentData) { return dbCall('addPayment', paymentData); }
+    async getPayments() { try { return (await dbCall('getPayments')).rows || []; } catch { return []; } }
+
+    // Vouchers
+    async redeemVoucher(code, email) { return dbCall('redeemVoucher', { code, email }); }
+    async createVoucher(voucherData) { return dbCall('createVoucher', voucherData); }
 }
 
 export const neonDb = new NeonClient();
