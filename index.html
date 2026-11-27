@@ -458,7 +458,7 @@ Mau tanya cara aktivasi, cara pakai generator, info premium, minta bikinin capti
                 </div>
             </div>
             <div class="flex items-center gap-2 pt-1">
-                <input type="text" id="discount-code-input" placeholder="Contoh: AYK12345" class="flex-1 neo-input px-3 py-2 text-xs font-mono uppercase tracking-widest">
+                <input type="text" id="discount-code-input" placeholder="Contoh: AYK-X8F2Q" class="flex-1 neo-input px-3 py-2 text-xs font-mono uppercase tracking-widest">
                 <button type="button" onclick="applyDiscountCode()" class="neo-btn-dark px-4 py-2 text-xs flex items-center justify-center gap-1.5">
                     <i class="fa-solid fa-check"></i> Pakai
                 </button>
@@ -497,7 +497,6 @@ Mau tanya cara aktivasi, cara pakai generator, info premium, minta bikinin capti
                         <h3 class="text-lg font-black mt-0.5">Plan Pro</h3>
                     </div>
                     <div class="text-right">
-                        <!-- HARGA RP 10.000 -->
                         <span class="text-lg font-black">Rp 10.000</span>
                         <span class="text-[10px] font-bold text-black/70 block">Total 500 Limit</span>
                     </div>
@@ -526,7 +525,6 @@ Mau tanya cara aktivasi, cara pakai generator, info premium, minta bikinin capti
                         <h3 class="text-lg font-black mt-0.5">Plan Enterprise</h3>
                     </div>
                     <div class="text-right">
-                        <!-- HARGA RP 15.000 -->
                         <span class="text-lg font-black">Rp 15.000</span>
                         <span class="text-[10px] font-bold text-gray-500 block">Total 1000 Limit</span>
                     </div>
@@ -634,14 +632,14 @@ Mau tanya cara aktivasi, cara pakai generator, info premium, minta bikinin capti
         </section>
 
         <!-- Generator Kode Diskon -->
-        <section class="neo-card-yellow p-5 space-y-4">
+        <section class="neo-card-yellow p-5 space-y-4 relative z-20">
             <div class="flex items-center gap-3 border-b-2 border-black pb-2">
                 <div class="w-10 h-10 rounded-full bg-white border-2 border-black flex items-center justify-center text-lg">
                     <i class="fa-solid fa-ticket"></i>
                 </div>
                 <div>
                     <h2 class="text-base font-black">Generate Kode Diskon</h2>
-                    <p class="text-[10px] font-bold text-black/70">Buat kode AYK otomatis.</p>
+                    <p class="text-[10px] font-bold text-black/70">Buat kode AYK otomatis (Expired 2 Hari).</p>
                 </div>
             </div>
             
@@ -650,13 +648,14 @@ Mau tanya cara aktivasi, cara pakai generator, info premium, minta bikinin capti
                 <input type="number" id="admin-generate-qty" min="1" max="50" value="1" class="w-full neo-input px-3.5 py-3 text-sm font-black text-center">
             </div>
             
-            <button type="button" onclick="generateDiscountCodes()" id="btn-admin-generate" class="w-full neo-btn-dark py-3.5 text-xs flex items-center justify-center gap-2">
+            <!-- TOMBOL GENERATE DENGAN ONCLICK YANG PASTI JALAN -->
+            <button type="button" onclick="generateDiscountCodes()" id="btn-admin-generate" class="w-full neo-btn-dark py-3.5 text-xs flex items-center justify-center gap-2 cursor-pointer shadow-[4px_4px_0px_#000] active:translate-y-[2px] active:shadow-none">
                 <i class="fa-solid fa-wand-magic-sparkles text-yellow-400"></i> Generate Kode AYK Sekarang
             </button>
 
             <div id="admin-codes-result" class="hidden space-y-2 pt-2">
                 <span class="text-[10px] font-black uppercase text-gray-600">HASIL GENERATE:</span>
-                <div id="admin-codes-list" class="p-3 bg-white border-2 border-black rounded-xl space-y-1 font-mono text-sm font-black text-center max-h-48 overflow-y-auto">
+                <div id="admin-codes-list" class="p-3 bg-white border-2 border-black rounded-xl space-y-2 font-mono text-sm font-black text-center max-h-48 overflow-y-auto">
                     <!-- Hasil kode akan muncul di sini -->
                 </div>
                 <button type="button" onclick="copyAdminCodes()" class="w-full neo-btn bg-emerald-300 py-2 text-[10px] flex items-center justify-center gap-1.5">
@@ -786,9 +785,21 @@ Mau tanya cara aktivasi, cara pakai generator, info premium, minta bikinin capti
     <!-- ============ JAVASCRIPT APP ============ -->
     <script type="module" src="/js/app.js"></script>
 
-    <!-- ============ INLINE FALLBACK SCRIPT UNTUK ADMIN ============ -->
+    <!-- ============ INLINE FALLBACK SCRIPT (LOGIKA ADMIN & DISKON) ============ -->
     <script>
-        // Fungsi untuk lihat/sembunyikan password
+        // --- FUNGSI UI UMUM ---
+        window.showCustomToast = function(msg) {
+            const toast = document.getElementById('toast-notif');
+            const msgEl = document.getElementById('toast-message');
+            if(toast && msgEl) {
+                msgEl.textContent = msg;
+                toast.classList.remove('opacity-0', 'pointer-events-none');
+                setTimeout(() => toast.classList.add('opacity-0', 'pointer-events-none'), 3000);
+            } else {
+                alert(msg);
+            }
+        };
+
         window.toggleAdminPassword = function() {
             const pwdInput = document.getElementById('admin-password-input');
             const icon = document.getElementById('admin-password-icon');
@@ -803,20 +814,7 @@ Mau tanya cara aktivasi, cara pakai generator, info premium, minta bikinin capti
             }
         };
 
-        // Fungsi Toast Mandiri (Anti Gagal)
-        window.showCustomToast = function(msg) {
-            const toast = document.getElementById('toast-notif');
-            const msgEl = document.getElementById('toast-message');
-            if(toast && msgEl) {
-                msgEl.textContent = msg;
-                toast.classList.remove('opacity-0', 'pointer-events-none');
-                setTimeout(() => toast.classList.add('opacity-0', 'pointer-events-none'), 3000);
-            } else {
-                alert(msg);
-            }
-        };
-
-        // Buka Modal Admin
+        // --- LOGIKA LOGIN ADMIN ---
         window.openAdminLoginModal = function() {
             const modal = document.getElementById('admin-login-modal');
             const content = document.getElementById('admin-login-modal-content');
@@ -824,13 +822,11 @@ Mau tanya cara aktivasi, cara pakai generator, info premium, minta bikinin capti
                 modal.classList.remove('opacity-0', 'pointer-events-none');
                 content.classList.remove('scale-95');
                 content.classList.add('scale-100');
-                // Kosongkan input tiap kali dibuka
                 document.getElementById('admin-username-input').value = '';
                 document.getElementById('admin-password-input').value = '';
             }
         };
 
-        // Tutup Modal Admin
         window.closeAdminLoginModal = function() {
             const modal = document.getElementById('admin-login-modal');
             const content = document.getElementById('admin-login-modal-content');
@@ -841,58 +837,138 @@ Mau tanya cara aktivasi, cara pakai generator, info premium, minta bikinin capti
             }
         };
 
-        // Proses Login Admin
         window.handleAdminLogin = function(e) {
             if(e) e.preventDefault();
-            
-            // Ambil nilai input dan HAPUS SPASI (trim)
-            let u = document.getElementById('admin-username-input').value.trim();
+            let u = document.getElementById('admin-username-input').value.trim().toUpperCase();
             let p = document.getElementById('admin-password-input').value.trim();
-            
-            // Ubah username jadi HURUF BESAR semua agar tidak case-sensitive
-            u = u.toUpperCase();
 
-            // Validasi (Username: OLPI STORE, Password: AYAKA12)
             if (u === 'OLPI STORE' && p === 'AYAKA12') {
                 window.closeAdminLoginModal();
-                
-                // Sembunyikan semua view
                 document.querySelectorAll('main').forEach(m => m.classList.add('hidden'));
                 
-                // Tampilkan view admin
                 const adminView = document.getElementById('view-admin');
                 if(adminView) {
                     adminView.classList.remove('hidden');
                     adminView.classList.add('tab-anim-enter');
                 }
                 
-                // Tampilkan menu admin di sidebar
                 const sideNavAdmin = document.getElementById('side-nav-admin');
                 if(sideNavAdmin) sideNavAdmin.classList.remove('hidden');
                 
-                // Tampilkan toast sukses
                 window.showCustomToast("Login Admin Berhasil! Selamat datang OLPI STORE.");
-                
             } else {
-                // Tampilkan toast error
                 window.showCustomToast("Username atau Password Salah!");
             }
         };
 
-        // Proses Logout Admin
         window.handleAdminLogout = function() {
             const sideNavAdmin = document.getElementById('side-nav-admin');
             if(sideNavAdmin) sideNavAdmin.classList.add('hidden');
             
-            // Kembali ke dashboard
             document.querySelectorAll('main').forEach(m => m.classList.add('hidden'));
             const dashView = document.getElementById('view-dashboard');
             if(dashView) {
                 dashView.classList.remove('hidden');
                 dashView.classList.add('tab-anim-enter');
             }
-            
             window.showCustomToast("Berhasil keluar dari mode Admin.");
+        };
+
+        // --- LOGIKA GENERATE KODE DISKON (EXPIRED 2 HARI) ---
+        window.generateDiscountCodes = function() {
+            const qtyInput = document.getElementById('admin-generate-qty');
+            const qty = parseInt(qtyInput.value) || 1;
+            const resultWrapper = document.getElementById('admin-codes-result');
+            const listEl = document.getElementById('admin-codes-list');
+            
+            if(qty < 1 || qty > 50) {
+                window.showCustomToast("Jumlah kode harus antara 1 - 50!");
+                return;
+            }
+
+            // Ambil kode lama dari localStorage
+            let existingCodes = JSON.parse(localStorage.getItem('ayaka_discount_codes') || '[]');
+            
+            // Waktu expired 2 hari (48 jam ke depan dalam milidetik)
+            const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
+            const expiredAt = Date.now() + TWO_DAYS_MS;
+            const expiredDateStr = new Date(expiredAt).toLocaleString('id-ID');
+
+            let generatedHtml = '';
+
+            for (let i = 0; i < qty; i++) {
+                // Buat kode acak: AYK + 5 karakter
+                const randomStr = Math.random().toString(36).substring(2, 7).toUpperCase();
+                const newCode = 'AYK' + randomStr;
+
+                // Simpan ke array
+                existingCodes.push({
+                    code: newCode,
+                    expiresAt: expiredAt
+                });
+
+                // Tampilkan di UI
+                generatedHtml += `
+                    <div class="bg-yellow-50 border-2 border-black p-2 rounded-lg flex flex-col items-center justify-center mb-1">
+                        <span class="text-base font-black tracking-widest text-black">${newCode}</span>
+                        <span class="text-[9px] font-bold text-red-500">Expired: ${expiredDateStr}</span>
+                    </div>
+                `;
+            }
+
+            // Simpan kembali ke localStorage
+            localStorage.setItem('ayaka_discount_codes', JSON.stringify(existingCodes));
+
+            // Tampilkan hasil
+            listEl.innerHTML = generatedHtml;
+            resultWrapper.classList.remove('hidden');
+            window.showCustomToast(`Berhasil generate ${qty} kode AYK!`);
+        };
+
+        window.copyAdminCodes = function() {
+            const listEl = document.getElementById('admin-codes-list');
+            const textToCopy = listEl.innerText.replace(/Expired:.*/g, '').trim(); // Hanya salin kodenya
+            if(!textToCopy) return;
+
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                window.showCustomToast("Kode berhasil disalin ke clipboard!");
+            }).catch(() => {
+                window.showCustomToast("Gagal menyalin kode.");
+            });
+        };
+
+        // --- LOGIKA PEMAKAIAN KODE DISKON DI MENU PLAN ---
+        window.applyDiscountCode = function() {
+            const input = document.getElementById('discount-code-input');
+            const code = input.value.trim().toUpperCase();
+            const statusMsg = document.getElementById('discount-status-msg');
+
+            if(!code) {
+                window.showCustomToast("Masukkan kode diskon terlebih dahulu!");
+                return;
+            }
+
+            // Ambil daftar kode dari localStorage
+            const validCodes = JSON.parse(localStorage.getItem('ayaka_discount_codes') || '[]');
+            const foundCode = validCodes.find(c => c.code === code);
+
+            if (foundCode) {
+                // Cek apakah sudah expired
+                if (Date.now() > foundCode.expiresAt) {
+                    window.showCustomToast("Kode diskon sudah expired (lebih dari 2 hari)!");
+                    input.classList.add('border-red-500');
+                } else {
+                    window.showCustomToast("Kode valid! Diskon berhasil diterapkan.");
+                    statusMsg.classList.remove('hidden');
+                    input.classList.remove('border-red-500');
+                    input.classList.add('border-emerald-500');
+                    // Di sini kamu bisa tambahkan logika potongan harga jika ada backend
+                }
+            } else {
+                window.showCustomToast("Kode diskon tidak ditemukan / salah!");
+                input.classList.add('border-red-500');
+                statusMsg.classList.add('hidden');
+            }
         };
     </script>
 </body>
