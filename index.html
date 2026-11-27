@@ -497,7 +497,7 @@ Mau tanya cara aktivasi, cara pakai generator, info premium, minta bikinin capti
                         <h3 class="text-lg font-black mt-0.5">Plan Pro</h3>
                     </div>
                     <div class="text-right">
-                        <!-- HARGA DIUBAH JADI 10.000 -->
+                        <!-- HARGA RP 10.000 -->
                         <span class="text-lg font-black">Rp 10.000</span>
                         <span class="text-[10px] font-bold text-black/70 block">Total 500 Limit</span>
                     </div>
@@ -526,7 +526,7 @@ Mau tanya cara aktivasi, cara pakai generator, info premium, minta bikinin capti
                         <h3 class="text-lg font-black mt-0.5">Plan Enterprise</h3>
                     </div>
                     <div class="text-right">
-                        <!-- HARGA DIUBAH JADI 15.000 -->
+                        <!-- HARGA RP 15.000 -->
                         <span class="text-lg font-black">Rp 15.000</span>
                         <span class="text-[10px] font-bold text-gray-500 block">Total 1000 Limit</span>
                     </div>
@@ -552,7 +552,7 @@ Mau tanya cara aktivasi, cara pakai generator, info premium, minta bikinin capti
     <!-- ============ PROFIL & SESI VIEW ============ -->
     <main id="view-profil" class="space-y-4 flex-1 hidden transition-all pt-2">
         
-        <!-- ============ ADMIN ACCESS BUTTON (DIPINDAH KE PALING ATAS) ============ -->
+        <!-- ============ ADMIN ACCESS BUTTON ============ -->
         <section class="neo-card p-4 bg-red-100 space-y-3 border-2 border-black relative z-20">
             <div class="flex items-center justify-between">
                 <span class="text-[10px] font-black uppercase bg-red-500 text-white px-2 py-0.5 border border-black rounded">PANEL KHUSUS</span>
@@ -622,7 +622,7 @@ Mau tanya cara aktivasi, cara pakai generator, info premium, minta bikinin capti
         </section>
     </main>
 
-    <!-- ============ ADMIN VIEW (HALAMAN UTAMA ADMIN) ============ -->
+    <!-- ============ ADMIN VIEW ============ -->
     <main id="view-admin" class="space-y-4 flex-1 hidden transition-all pt-2">
         <section class="neo-card p-4 bg-zinc-900 text-white space-y-1">
             <div class="flex items-center justify-between">
@@ -725,7 +725,6 @@ Mau tanya cara aktivasi, cara pakai generator, info premium, minta bikinin capti
     </div>
 
     <!-- ============ MODAL LOGIN ADMIN ============ -->
-    <!-- z-[100] memastikan modal ini berada di atas segalanya -->
     <div id="admin-login-modal" class="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
         <div class="neo-card p-5 bg-white w-full max-w-sm space-y-4 relative transform scale-95 transition-transform duration-200 border-4 border-red-500" id="admin-login-modal-content">
             <button type="button" onclick="closeAdminLoginModal()" class="absolute -top-3 -right-3 w-8 h-8 neo-btn-yellow flex items-center justify-center font-black text-sm">✕</button>
@@ -734,7 +733,8 @@ Mau tanya cara aktivasi, cara pakai generator, info premium, minta bikinin capti
                     <i class="fa-solid fa-lock text-red-600"></i>
                 </div>
                 <h3 class="text-lg font-black mt-2">Admin Access</h3>
-                <p class="text-[11px] font-semibold text-gray-600">Area terbatas. Masukkan kredensial Anda.</p>
+                <p class="text-[10px] font-black uppercase bg-yellow-300 inline-block px-2 py-0.5 border border-black rounded mt-1">Owner: OLPI STORE</p>
+                <p class="text-[11px] font-semibold text-gray-600 mt-1">Area terbatas. Masukkan kredensial Anda.</p>
             </div>
             <form onsubmit="handleAdminLogin(event)" class="space-y-3">
                 <div>
@@ -743,7 +743,13 @@ Mau tanya cara aktivasi, cara pakai generator, info premium, minta bikinin capti
                 </div>
                 <div>
                     <label class="block text-xs font-black uppercase mb-1">Password</label>
-                    <input type="password" id="admin-password-input" placeholder="Masukkan Password" class="w-full neo-input px-3.5 py-3 text-xs">
+                    <div class="relative">
+                        <input type="password" id="admin-password-input" placeholder="Masukkan Password" class="w-full neo-input pl-3.5 pr-10 py-3 text-xs">
+                        <!-- Tombol Ikon Mata -->
+                        <button type="button" onclick="toggleAdminPassword()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black focus:outline-none z-10">
+                            <i class="fa-solid fa-eye-slash" id="admin-password-icon"></i>
+                        </button>
+                    </div>
                 </div>
                 <button type="submit" class="w-full neo-btn-dark py-3 text-xs flex items-center justify-center gap-2 mt-2">
                     <i class="fa-solid fa-right-to-bracket text-red-400"></i> Login
@@ -782,71 +788,112 @@ Mau tanya cara aktivasi, cara pakai generator, info premium, minta bikinin capti
 
     <!-- ============ INLINE FALLBACK SCRIPT UNTUK ADMIN ============ -->
     <script>
-        // Pastikan fungsi modal admin tersedia secara global meskipun file app.js belum termuat sempurna
-        if (typeof window.openAdminLoginModal !== 'function') {
-            window.openAdminLoginModal = function() {
-                const modal = document.getElementById('admin-login-modal');
-                const content = document.getElementById('admin-login-modal-content');
-                if (modal && content) {
-                    modal.classList.remove('opacity-0', 'pointer-events-none');
-                    content.classList.remove('scale-95');
-                    content.classList.add('scale-100');
-                }
-            };
-        }
-        if (typeof window.closeAdminLoginModal !== 'function') {
-            window.closeAdminLoginModal = function() {
-                const modal = document.getElementById('admin-login-modal');
-                const content = document.getElementById('admin-login-modal-content');
-                if (modal && content) {
-                    modal.classList.add('opacity-0', 'pointer-events-none');
-                    content.classList.remove('scale-100');
-                    content.classList.add('scale-95');
-                }
-            };
-        }
-        if (typeof window.handleAdminLogin !== 'function') {
-            window.handleAdminLogin = function(e) {
-                if(e) e.preventDefault();
-                const u = document.getElementById('admin-username-input').value;
-                const p = document.getElementById('admin-password-input').value;
-                if (u === 'OLPI STORE' && p === 'AYAKA12') {
-                    window.closeAdminLoginModal();
-                    if (typeof window.setActiveTab === 'function') {
-                        window.setActiveTab('admin');
-                    } else {
-                        document.getElementById('view-admin').classList.remove('hidden');
-                    }
-                    document.getElementById('side-nav-admin').classList.remove('hidden');
-                    
-                    const toast = document.getElementById('toast-notif');
-                    document.getElementById('toast-message').textContent = "Login Admin Berhasil!";
-                    toast.classList.remove('opacity-0', 'pointer-events-none');
-                    setTimeout(() => toast.classList.add('opacity-0', 'pointer-events-none'), 2500);
-                } else {
-                    const toast = document.getElementById('toast-notif');
-                    document.getElementById('toast-message').textContent = "Username atau Password Salah!";
-                    toast.classList.remove('opacity-0', 'pointer-events-none');
-                    setTimeout(() => toast.classList.add('opacity-0', 'pointer-events-none'), 2500);
-                }
-            };
-        }
-        if (typeof window.handleAdminLogout !== 'function') {
-            window.handleAdminLogout = function() {
-                document.getElementById('side-nav-admin').classList.add('hidden');
-                if (typeof window.setActiveTab === 'function') {
-                    window.setActiveTab('dashboard');
-                } else {
-                    document.getElementById('view-admin').classList.add('hidden');
-                    document.getElementById('view-dashboard').classList.remove('hidden');
+        // Fungsi untuk lihat/sembunyikan password
+        window.toggleAdminPassword = function() {
+            const pwdInput = document.getElementById('admin-password-input');
+            const icon = document.getElementById('admin-password-icon');
+            if (pwdInput.type === 'password') {
+                pwdInput.type = 'text';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            } else {
+                pwdInput.type = 'password';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            }
+        };
+
+        // Fungsi Toast Mandiri (Anti Gagal)
+        window.showCustomToast = function(msg) {
+            const toast = document.getElementById('toast-notif');
+            const msgEl = document.getElementById('toast-message');
+            if(toast && msgEl) {
+                msgEl.textContent = msg;
+                toast.classList.remove('opacity-0', 'pointer-events-none');
+                setTimeout(() => toast.classList.add('opacity-0', 'pointer-events-none'), 3000);
+            } else {
+                alert(msg);
+            }
+        };
+
+        // Buka Modal Admin
+        window.openAdminLoginModal = function() {
+            const modal = document.getElementById('admin-login-modal');
+            const content = document.getElementById('admin-login-modal-content');
+            if (modal && content) {
+                modal.classList.remove('opacity-0', 'pointer-events-none');
+                content.classList.remove('scale-95');
+                content.classList.add('scale-100');
+                // Kosongkan input tiap kali dibuka
+                document.getElementById('admin-username-input').value = '';
+                document.getElementById('admin-password-input').value = '';
+            }
+        };
+
+        // Tutup Modal Admin
+        window.closeAdminLoginModal = function() {
+            const modal = document.getElementById('admin-login-modal');
+            const content = document.getElementById('admin-login-modal-content');
+            if (modal && content) {
+                modal.classList.add('opacity-0', 'pointer-events-none');
+                content.classList.remove('scale-100');
+                content.classList.add('scale-95');
+            }
+        };
+
+        // Proses Login Admin
+        window.handleAdminLogin = function(e) {
+            if(e) e.preventDefault();
+            
+            // Ambil nilai input dan HAPUS SPASI (trim)
+            let u = document.getElementById('admin-username-input').value.trim();
+            let p = document.getElementById('admin-password-input').value.trim();
+            
+            // Ubah username jadi HURUF BESAR semua agar tidak case-sensitive
+            u = u.toUpperCase();
+
+            // Validasi (Username: OLPI STORE, Password: AYAKA12)
+            if (u === 'OLPI STORE' && p === 'AYAKA12') {
+                window.closeAdminLoginModal();
+                
+                // Sembunyikan semua view
+                document.querySelectorAll('main').forEach(m => m.classList.add('hidden'));
+                
+                // Tampilkan view admin
+                const adminView = document.getElementById('view-admin');
+                if(adminView) {
+                    adminView.classList.remove('hidden');
+                    adminView.classList.add('tab-anim-enter');
                 }
                 
-                const toast = document.getElementById('toast-notif');
-                document.getElementById('toast-message').textContent = "Berhasil keluar dari mode Admin.";
-                toast.classList.remove('opacity-0', 'pointer-events-none');
-                setTimeout(() => toast.classList.add('opacity-0', 'pointer-events-none'), 2500);
-            };
-        }
+                // Tampilkan menu admin di sidebar
+                const sideNavAdmin = document.getElementById('side-nav-admin');
+                if(sideNavAdmin) sideNavAdmin.classList.remove('hidden');
+                
+                // Tampilkan toast sukses
+                window.showCustomToast("Login Admin Berhasil! Selamat datang OLPI STORE.");
+                
+            } else {
+                // Tampilkan toast error
+                window.showCustomToast("Username atau Password Salah!");
+            }
+        };
+
+        // Proses Logout Admin
+        window.handleAdminLogout = function() {
+            const sideNavAdmin = document.getElementById('side-nav-admin');
+            if(sideNavAdmin) sideNavAdmin.classList.add('hidden');
+            
+            // Kembali ke dashboard
+            document.querySelectorAll('main').forEach(m => m.classList.add('hidden'));
+            const dashView = document.getElementById('view-dashboard');
+            if(dashView) {
+                dashView.classList.remove('hidden');
+                dashView.classList.add('tab-anim-enter');
+            }
+            
+            window.showCustomToast("Berhasil keluar dari mode Admin.");
+        };
     </script>
 </body>
 </html>
