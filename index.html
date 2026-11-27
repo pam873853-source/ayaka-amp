@@ -3,9 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
-<meta name="google-site-verification" content="PB_xw2KSVxShVW5lEJzaW2WMvCwNIz_lGDkfhoeuhic" />
-
     <title>AYAKA MOTION - Activation Console</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -63,6 +60,11 @@
                 <button type="button" id="side-nav-profil" onclick="setActiveTab('profil'); toggleSidebar(false)" class="w-full neo-btn py-3 px-4 text-xs flex items-center justify-between text-left">
                     <div class="flex items-center gap-3"><i class="fa-solid fa-user-shield text-base w-5 text-center text-blue-600"></i><span>Profil & Sesi</span></div>
                     <span id="sidebar-session-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-black"></span>
+                </button>
+                <!-- MENU ADMIN DI SIDEBAR -->
+                <button type="button" id="side-nav-admin" onclick="setActiveTab('admin'); toggleSidebar(false)" class="w-full neo-btn py-3 px-4 text-xs flex items-center justify-between text-left hidden">
+                    <div class="flex items-center gap-3"><i class="fa-solid fa-user-tie text-base w-5 text-center text-red-600"></i><span>Admin Panel</span></div>
+                    <span class="text-[9px] font-black bg-red-400 border border-black px-1.5 py-0.5 rounded">ADMIN</span>
                 </button>
                 <button type="button" id="side-nav-riwayat" onclick="setActiveTab('riwayat'); toggleSidebar(false)" class="w-full neo-btn py-3 px-4 text-xs flex items-center gap-3 text-left">
                     <i class="fa-solid fa-clock-rotate-left text-base w-5 text-center"></i><span>Riwayat</span>
@@ -145,11 +147,10 @@
             </div>
         </section>
 
-        <!-- STATS GRID — 3 KOLOM (dengan UPTIME 24H dari Neon DB) -->
         <section class="grid grid-cols-3 gap-2">
             <div class="neo-card p-3 space-y-1">
                 <span class="text-[9px] font-black uppercase text-gray-500">ONLINE</span>
-                <div class="text-xl font-black font-mono" id="visitors-count">1</div>
+                <div class="text-xl font-black font-mono" id="visitors-count">0</div>
             </div>
             <div class="neo-card p-3 space-y-1">
                 <span class="text-[9px] font-black uppercase text-gray-500">AKTIVASI</span>
@@ -448,9 +449,26 @@ Mau tanya cara aktivasi, cara pakai generator, info premium, minta bikinin capti
             </p>
         </section>
 
+        <!-- FORM KODE DISKON (BARU) -->
+        <section class="neo-card-yellow p-4 space-y-2">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-ticket text-xl"></i>
+                <div>
+                    <h3 class="text-sm font-black uppercase">Punya Kode Diskon?</h3>
+                    <p class="text-[10px] font-bold text-black/70">Masukkan kode AYK untuk potongan harga!</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 pt-1">
+                <input type="text" id="discount-code-input" placeholder="Contoh: AYK12345" class="flex-1 neo-input px-3 py-2 text-xs font-mono uppercase tracking-widest">
+                <button type="button" onclick="applyDiscountCode()" class="neo-btn-dark px-4 py-2 text-xs flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-check"></i> Pakai
+                </button>
+            </div>
+            <p id="discount-status-msg" class="text-[10px] font-black text-emerald-600 hidden">Kode berhasil dipakai!</p>
+        </section>
+
         <!-- KARTU PAKET PLAN -->
         <div class="space-y-3">
-
             <!-- PLAN FREE -->
             <div class="neo-card p-4 bg-white space-y-2.5">
                 <div class="flex items-center justify-between">
@@ -530,46 +548,6 @@ Mau tanya cara aktivasi, cara pakai generator, info premium, minta bikinin capti
         </div>
     </main>
 
-    <!-- ============ MODAL PEMBAYARAN QR ============ -->
-    <div id="plan-qr-modal" class="fixed inset-0 bg-black/65 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200 overflow-y-auto">
-        <div class="neo-card p-4 bg-white w-full max-w-sm space-y-3 relative transform scale-95 transition-transform duration-200 my-auto" id="plan-qr-modal-content">
-            <button type="button" onclick="closePlanPaymentModal()" class="absolute -top-3 -right-3 w-8 h-8 neo-btn-yellow flex items-center justify-center font-black text-sm">✕</button>
-
-            <div class="flex items-center justify-between">
-                <span class="text-[10px] font-black uppercase bg-blue-100 text-blue-800 border border-black px-2 py-0.5 rounded">Scan QRIS / QR</span>
-                <span id="pay-modal-price" class="text-xs font-black bg-yellow-300 border border-black px-2 py-0.5 rounded">Rp 0</span>
-            </div>
-
-            <div>
-                <h3 id="pay-modal-title" class="text-base font-black">Pembayaran Plan</h3>
-                <p class="text-[11px] font-semibold text-gray-600">Scan QR di bawah, lalu upload screenshot bukti pembayaran sebelum menekan tombol hijau.</p>
-            </div>
-
-            <div class="neo-card p-1.5 bg-sky-50 border-2 border-black flex items-center justify-center overflow-hidden max-h-60">
-                <img src="/images/ayaka-sync-qr.png" onerror="this.onerror=null;this.src='/images/ayaka-store.png';" alt="QR Pembayaran Ayaka Sync" class="w-full h-52 object-contain rounded-lg">
-            </div>
-
-            <div class="space-y-1.5">
-                <label class="block text-xs font-black">Bukti transfer (gambar, maks 5 MB)</label>
-                <div class="flex items-center gap-2 p-2 bg-white border-2 border-black rounded-xl">
-                    <label for="payment-proof-file" class="neo-btn px-3 py-1.5 text-[11px] bg-zinc-100 shrink-0 cursor-pointer">Pilih File</label>
-                    <input type="file" id="payment-proof-file" accept="image/*" onchange="handlePaymentProofChange(event)" class="hidden">
-                    <span id="payment-proof-filename" class="text-[11px] font-bold text-gray-500 truncate">Tidak ada ... yang dipilih</span>
-                </div>
-                <div id="payment-proof-preview-wrap" class="hidden pt-1">
-                    <img id="payment-proof-preview" src="" alt="Preview Bukti" class="w-full h-24 object-cover rounded-lg border-2 border-black">
-                </div>
-            </div>
-
-            <div class="space-y-2 pt-1">
-                <button type="button" id="btn-submit-payment-proof" onclick="handleSubmitPaymentProof()" disabled class="w-full py-2.5 px-4 rounded-xl border-2 border-black font-black text-xs bg-emerald-500 text-white shadow-[3px_3px_0px_#000] opacity-40 cursor-not-allowed transition-all flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-paper-plane"></i> Kirim Bukti Transfer
-                </button>
-                <button type="button" onclick="closePlanPaymentModal()" class="w-full py-2 px-4 rounded-xl border-2 border-black font-black text-xs bg-rose-500 text-white shadow-[3px_3px_0px_#000]">Batalkan Pesanan</button>
-            </div>
-        </div>
-    </div>
-
     <!-- ============ PROFIL & SESI VIEW ============ -->
     <main id="view-profil" class="space-y-4 flex-1 hidden transition-all pt-2">
         <section class="neo-card p-4 space-y-1 bg-white">
@@ -628,7 +606,102 @@ Mau tanya cara aktivasi, cara pakai generator, info premium, minta bikinin capti
                 <i class="fa-solid fa-right-from-bracket"></i> Keluar Sesi (Logout)
             </button>
         </section>
+
+        <!-- ============ ADMIN ACCESS BUTTON (BARU) ============ -->
+        <section class="neo-card p-4 bg-red-100 space-y-3 mt-2 border-2 border-black">
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] font-black uppercase bg-red-500 text-white px-2 py-0.5 border border-black rounded">PANEL KHUSUS</span>
+                <i class="fa-solid fa-user-shield text-lg text-red-600"></i>
+            </div>
+            <p class="text-[10px] font-bold text-black/70">Akses halaman admin untuk generate kode diskon dan melihat data rahasia.</p>
+            <button type="button" onclick="openAdminLoginModal()" class="w-full neo-btn-dark py-2.5 text-xs flex items-center justify-center gap-2">
+                <i class="fa-solid fa-key text-red-400"></i> Login sebagai Admin
+            </button>
+        </section>
     </main>
+
+    <!-- ============ ADMIN VIEW (BARU) ============ -->
+    <main id="view-admin" class="space-y-4 flex-1 hidden transition-all pt-2">
+        <section class="neo-card p-4 bg-zinc-900 text-white space-y-1">
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] font-black uppercase tracking-wider bg-red-500 px-2 py-0.5 border border-black rounded">ADMINISTRATOR</span>
+                <span class="text-[10px] font-mono font-bold text-emerald-400" id="admin-email-display">olpieditz336@gmail.com</span>
+            </div>
+            <h1 class="text-xl font-black mt-1 text-yellow-400">Halo, OLPI STORE</h1>
+            <p class="text-xs font-semibold text-gray-300">Selamat datang di pusat kendali Ayaka Motion.</p>
+        </section>
+
+        <!-- Generator Kode Diskon -->
+        <section class="neo-card-yellow p-5 space-y-4">
+            <div class="flex items-center gap-3 border-b-2 border-black pb-2">
+                <div class="w-10 h-10 rounded-full bg-white border-2 border-black flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-ticket"></i>
+                </div>
+                <div>
+                    <h2 class="text-base font-black">Generate Kode Diskon</h2>
+                    <p class="text-[10px] font-bold text-black/70">Buat kode AYK otomatis.</p>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-xs font-black uppercase mb-1">Jumlah Kode yang Digenerate</label>
+                <input type="number" id="admin-generate-qty" min="1" max="50" value="1" class="w-full neo-input px-3.5 py-3 text-sm font-black text-center">
+            </div>
+            
+            <button type="button" onclick="generateDiscountCodes()" id="btn-admin-generate" class="w-full neo-btn-dark py-3.5 text-xs flex items-center justify-center gap-2">
+                <i class="fa-solid fa-wand-magic-sparkles text-yellow-400"></i> Generate Kode AYK Sekarang
+            </button>
+
+            <div id="admin-codes-result" class="hidden space-y-2 pt-2">
+                <span class="text-[10px] font-black uppercase text-gray-600">HASIL GENERATE:</span>
+                <div id="admin-codes-list" class="p-3 bg-white border-2 border-black rounded-xl space-y-1 font-mono text-sm font-black text-center max-h-48 overflow-y-auto">
+                    <!-- Hasil kode akan muncul di sini -->
+                </div>
+                <button type="button" onclick="copyAdminCodes()" class="w-full neo-btn bg-emerald-300 py-2 text-[10px] flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-copy"></i> Salin Semua Kode
+                </button>
+            </div>
+        </section>
+        
+        <button type="button" onclick="handleAdminLogout()" class="w-full neo-btn bg-red-400 hover:bg-red-500 py-3 text-xs flex items-center justify-center gap-2 mt-4">
+            <i class="fa-solid fa-right-from-bracket"></i> Keluar dari Mode Admin
+        </button>
+    </main>
+
+    <!-- ============ MODAL PEMBAYARAN QR ============ -->
+    <div id="plan-qr-modal" class="fixed inset-0 bg-black/65 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200 overflow-y-auto">
+        <div class="neo-card p-4 bg-white w-full max-w-sm space-y-3 relative transform scale-95 transition-transform duration-200 my-auto" id="plan-qr-modal-content">
+            <button type="button" onclick="closePlanPaymentModal()" class="absolute -top-3 -right-3 w-8 h-8 neo-btn-yellow flex items-center justify-center font-black text-sm">✕</button>
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] font-black uppercase bg-blue-100 text-blue-800 border border-black px-2 py-0.5 rounded">Scan QRIS / QR</span>
+                <span id="pay-modal-price" class="text-xs font-black bg-yellow-300 border border-black px-2 py-0.5 rounded">Rp 0</span>
+            </div>
+            <div>
+                <h3 id="pay-modal-title" class="text-base font-black">Pembayaran Plan</h3>
+                <p class="text-[11px] font-semibold text-gray-600">Scan QR di bawah, lalu upload screenshot bukti pembayaran sebelum menekan tombol hijau.</p>
+            </div>
+            <div class="neo-card p-1.5 bg-sky-50 border-2 border-black flex items-center justify-center overflow-hidden max-h-60">
+                <img src="/images/ayaka-sync-qr.png" onerror="this.onerror=null;this.src='/images/ayaka-store.png';" alt="QR Pembayaran Ayaka Sync" class="w-full h-52 object-contain rounded-lg">
+            </div>
+            <div class="space-y-1.5">
+                <label class="block text-xs font-black">Bukti transfer (gambar, maks 5 MB)</label>
+                <div class="flex items-center gap-2 p-2 bg-white border-2 border-black rounded-xl">
+                    <label for="payment-proof-file" class="neo-btn px-3 py-1.5 text-[11px] bg-zinc-100 shrink-0 cursor-pointer">Pilih File</label>
+                    <input type="file" id="payment-proof-file" accept="image/*" onchange="handlePaymentProofChange(event)" class="hidden">
+                    <span id="payment-proof-filename" class="text-[11px] font-bold text-gray-500 truncate">Tidak ada ... yang dipilih</span>
+                </div>
+                <div id="payment-proof-preview-wrap" class="hidden pt-1">
+                    <img id="payment-proof-preview" src="" alt="Preview Bukti" class="w-full h-24 object-cover rounded-lg border-2 border-black">
+                </div>
+            </div>
+            <div class="space-y-2 pt-1">
+                <button type="button" id="btn-submit-payment-proof" onclick="handleSubmitPaymentProof()" disabled class="w-full py-2.5 px-4 rounded-xl border-2 border-black font-black text-xs bg-emerald-500 text-white shadow-[3px_3px_0px_#000] opacity-40 cursor-not-allowed transition-all flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-paper-plane"></i> Kirim Bukti Transfer
+                </button>
+                <button type="button" onclick="closePlanPaymentModal()" class="w-full py-2 px-4 rounded-xl border-2 border-black font-black text-xs bg-rose-500 text-white shadow-[3px_3px_0px_#000]">Batalkan Pesanan</button>
+            </div>
+        </div>
+    </div>
 
     <!-- ============ MODAL REDEEM VOUCHER ============ -->
     <div id="redeem-modal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
@@ -646,6 +719,33 @@ Mau tanya cara aktivasi, cara pakai generator, info premium, minta bikinin capti
             <button type="button" onclick="handleRedeemPlanCode()" class="w-full neo-btn-dark py-3 text-xs flex items-center justify-center gap-2">
                 <i class="fa-solid fa-check-circle text-yellow-400"></i> Konfirmasi & Aktifkan Plan
             </button>
+        </div>
+    </div>
+
+    <!-- ============ MODAL LOGIN ADMIN (BARU) ============ -->
+    <div id="admin-login-modal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+        <div class="neo-card p-5 bg-white w-full max-w-sm space-y-4 relative transform scale-95 transition-transform duration-200 border-4 border-red-500" id="admin-login-modal-content">
+            <button type="button" onclick="closeAdminLoginModal()" class="absolute -top-3 -right-3 w-8 h-8 neo-btn-yellow flex items-center justify-center font-black text-sm">✕</button>
+            <div class="space-y-1 text-center border-b-2 border-black pb-2">
+                <div class="w-12 h-12 mx-auto rounded-full bg-red-100 border-2 border-black flex items-center justify-center text-xl shadow-[2px_2px_0px_#000]">
+                    <i class="fa-solid fa-lock text-red-600"></i>
+                </div>
+                <h3 class="text-lg font-black mt-2">Admin Access</h3>
+                <p class="text-[11px] font-semibold text-gray-600">Area terbatas. Masukkan kredensial Anda.</p>
+            </div>
+            <form onsubmit="handleAdminLogin(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-black uppercase mb-1">Username</label>
+                    <input type="text" id="admin-username-input" placeholder="Masukkan Username" class="w-full neo-input px-3.5 py-3 text-xs">
+                </div>
+                <div>
+                    <label class="block text-xs font-black uppercase mb-1">Password</label>
+                    <input type="password" id="admin-password-input" placeholder="Masukkan Password" class="w-full neo-input px-3.5 py-3 text-xs">
+                </div>
+                <button type="submit" class="w-full neo-btn-dark py-3 text-xs flex items-center justify-center gap-2 mt-2">
+                    <i class="fa-solid fa-right-to-bracket text-red-400"></i> Login
+                </button>
+            </form>
         </div>
     </div>
 
